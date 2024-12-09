@@ -25,6 +25,39 @@ limitations under the License.
 
 namespace tflite {
 
+namespace impl {
+void PrintModelLayers(const tflite::Model* model) {
+  if (!model || !model->subgraphs()) {
+    std::cerr << "Invalid model or no subgraphs found.\n";
+    return;
+  }
+
+  for (size_t subgraph_idx = 0; subgraph_idx < model->subgraphs()->size(); ++subgraph_idx) {
+    const tflite::SubGraph* subgraph = model->subgraphs()->Get(subgraph_idx);
+    std::cout << "SubGraph " << subgraph_idx << " has " 
+              << subgraph->operators()->size() << " layers.\n";
+
+    for (size_t op_idx = 0; op_idx < subgraph->operators()->size(); ++op_idx) {
+      const tflite::Operator* op = subgraph->operators()->Get(op_idx);
+      const tflite::OperatorCode* op_code = model->operator_codes()->Get(op->opcode_index());
+      const char* op_name = tflite::EnumNameBuiltinOperator(
+          static_cast<tflite::BuiltinOperator>(op_code->builtin_code()));
+
+      std::cout << "  Layer " << op_idx << ": " << op_name << "\n";
+      std::cout << "    Inputs: ";
+      for (int32_t input_idx : *op->inputs()) {
+        std::cout << input_idx << " ";
+      }
+      std::cout << "\n    Outputs: ";
+      for (int32_t output_idx : *op->outputs()) {
+        std::cout << output_idx << " ";
+      }
+      std::cout << "\n";
+    }
+  }
+}
+}
+
 #ifndef TFLITE_MCU
 // Loads a model from `filename`. If `mmap_file` is true then use mmap,
 // otherwise make a copy of the model in a buffer.

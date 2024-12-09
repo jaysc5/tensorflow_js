@@ -35,6 +35,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <utility>
+#include <iostream>
 
 #include "flatbuffers/base.h"  // from @flatbuffers
 #include "flatbuffers/buffer.h"  // from @flatbuffers
@@ -55,6 +56,8 @@ std::unique_ptr<Allocation> GetAllocationFromFile(
     int fd, ErrorReporter* error_reporter);
 
 namespace impl {
+
+void PrintModelLayers(const tflite::Model* model);
 
 /// An RAII object that represents a read-only tflite model, copied from disk,
 /// or mmapped. This uses flatbuffers as the serialization format.
@@ -97,8 +100,12 @@ class FlatBufferModelBase {
     std::unique_ptr<T> model = BuildFromAllocation(
         GetAllocationFromFile(filename, error_reporter), error_reporter);
 #if FLATBUFFERS_LITTLEENDIAN == 1
+    std::cout << "BuildFromFile 1"  << "\n";
+    if (model) PrintModelLayers(model->GetModel());  // 레이어 출력 추가
     return model;
 #else
+    std::cout << "BuildFromFile 0"  << "\n";
+    if (model) PrintModelLayers(model->GetModel());  // 레이어 출력 추가
     return ByteConvertModel(std::move(model), error_reporter);
 #endif
   }
@@ -120,8 +127,12 @@ class FlatBufferModelBase {
         GetAllocationFromFile(filename, error_reporter), extra_verifier,
         error_reporter);
 #if FLATBUFFERS_LITTLEENDIAN == 1
+    std::cout << "VerifyAndBuildFromFile 1"  << "\n";
+    if (model) PrintModelLayers(model->GetModel());
     return model;
 #else
+    std::cout << "VerifyAndBuildFromFile 0"  << "\n";
+    if (model) PrintModelLayers(model->GetModel());
     return ByteConvertModel(std::move(model), error_reporter);
 #endif
   }
@@ -137,8 +148,12 @@ class FlatBufferModelBase {
     std::unique_ptr<T> model = BuildFromAllocation(
         GetAllocationFromFile(fd, error_reporter), error_reporter);
 #if FLATBUFFERS_LITTLEENDIAN == 1
+    std::cout << "BuildFromFileDescriptor 1"  << "\n";
+    if (model) PrintModelLayers(model->GetModel());
     return model;
 #else
+    std::cout << "BuildFromFileDescriptor 0"  << "\n";
+    if (model) PrintModelLayers(model->GetModel());
     return ByteConvertModel(std::move(model), error_reporter);
 #endif
   }
@@ -160,8 +175,12 @@ class FlatBufferModelBase {
         VerifyAndBuildFromAllocation(GetAllocationFromFile(fd, error_reporter),
                                      extra_verifier, error_reporter);
 #if FLATBUFFERS_LITTLEENDIAN == 1
+    std::cout << "VerifyAndBuildFromFileDescriptor 1"  << "\n";
+    if (model) PrintModelLayers(model->GetModel());
     return model;
 #else
+    std::cout << "VerifyAndBuildFromFileDescriptor 0"  << "\n";
+    if (model) PrintModelLayers(model->GetModel());
     return ByteConvertModel(std::move(model), error_reporter);
 #endif
   }
@@ -180,7 +199,11 @@ class FlatBufferModelBase {
     error_reporter = ValidateErrorReporter(error_reporter);
     std::unique_ptr<Allocation> allocation(
         new MemoryAllocation(caller_owned_buffer, buffer_size, error_reporter));
-    return BuildFromAllocation(std::move(allocation), error_reporter);
+    std::cout << "BuildFromBuffer"  << "\n";
+    std::unique_ptr<T> model = BuildFromAllocation(std::move(allocation), error_reporter);
+    if (model) impl::PrintModelLayers(model->GetModel());
+    return model;
+
   }
 
   /// Verifies whether the content of the buffer is legit, then builds a model
@@ -200,8 +223,11 @@ class FlatBufferModelBase {
     error_reporter = ValidateErrorReporter(error_reporter);
     std::unique_ptr<Allocation> allocation(
         new MemoryAllocation(caller_owned_buffer, buffer_size, error_reporter));
-    return VerifyAndBuildFromAllocation(std::move(allocation), extra_verifier,
-                                        error_reporter);
+    std::cout << "VerifyAndBuildFromBuffer"  << "\n";
+    std::unique_ptr<T> model = VerifyAndBuildFromAllocation(std::move(allocation), extra_verifier,
+                                          error_reporter);
+    if (model) impl::PrintModelLayers(model->GetModel());
+    return model;
   }
 
 #if FLATBUFFERS_LITTLEENDIAN == 0
